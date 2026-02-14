@@ -3,6 +3,8 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
+import httpx
+
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -81,7 +83,12 @@ async def add_youtube(interaction: discord.Interaction, url_or_id: str):
         count = bot_ref.retriever.index_document(doc)
         return doc.title, count, doc.source_ref
 
-    title, count, source_ref = await asyncio.to_thread(work)
+    try:
+        title, count, source_ref = await asyncio.to_thread(work)
+    except Exception as exc:
+        await interaction.followup.send(f"❌ YouTube 처리 중 오류가 발생했습니다: `{type(exc).__name__}: {exc}`")
+        return
+
     await interaction.followup.send(
         f"✅ YouTube 추가 완료: **{title}** (청크 {count}개)\n원본: {source_ref}"
     )
@@ -106,7 +113,16 @@ async def ask(interaction: discord.Interaction, question: str):
     assert bot_ref is not None
 
     contexts = await asyncio.to_thread(bot_ref.retriever.query, question)
-    answer = await asyncio.to_thread(bot_ref.llm.generate_answer, question, contexts)
+    try:
+        answer = await asyncio.to_thread(bot_ref.llm.generate_answer, question, contexts)
+    except httpx.TimeoutException:
+        await interaction.followup.send(
+            "❌ 답변 생성이 시간 초과되었습니다. LM Studio 상태를 확인하거나 `LMSTUDIO_TIMEOUT_SECONDS` 값을 늘려주세요."
+        )
+        return
+    except Exception as exc:
+        await interaction.followup.send(f"❌ 답변 생성 중 오류가 발생했습니다: `{type(exc).__name__}: {exc}`")
+        return
 
     refs = []
     for item in contexts[: bot_ref.settings.max_context_chunks]:

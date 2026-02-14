@@ -34,7 +34,7 @@ class LocalLLM:
         }
 
         url = f"{self.settings.lmstudio_base_url.rstrip('/')}" + "/chat/completions"
-        with httpx.Client(timeout=120) as client:
+        with httpx.Client(timeout=self.settings.lmstudio_timeout_seconds) as client:
             resp = client.post(url, json=payload)
             resp.raise_for_status()
             data = resp.json()

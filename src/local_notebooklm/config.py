@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     discord_token: str = Field(alias="DISCORD_TOKEN")
     lmstudio_base_url: str = Field(default="http://127.0.0.1:1234/v1", alias="LMSTUDIO_BASE_URL")
     lmstudio_model: str = Field(default="local-model", alias="LMSTUDIO_MODEL")
+    lmstudio_timeout_seconds: int = Field(default=300, alias="LMSTUDIO_TIMEOUT_SECONDS")
 
     data_dir: Path = Field(default=Path("./data"), alias="DATA_DIR")
     embedding_model: str = Field(
