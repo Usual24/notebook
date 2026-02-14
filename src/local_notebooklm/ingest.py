@@ -123,10 +123,24 @@ def _extract_video_id(url_or_id: str) -> str:
     return url_or_id.strip()
 
 
+def _get_transcript(video_id: str, language_priority: tuple[str, ...]) -> list[str]:
+    languages = list(language_priority)
+
+    # youtube-transcript-api 0.x compatibility
+    if hasattr(YouTubeTranscriptApi, "get_transcript"):
+        transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=languages)
+        return [part.get("text", "") for part in transcript]
+
+    # youtube-transcript-api 1.x compatibility
+    api = YouTubeTranscriptApi()
+    fetched = api.fetch(video_id, languages=languages)
+    return [snippet.text for snippet in fetched]
+
+
 def parse_youtube(url_or_id: str, language_priority: tuple[str, ...] = ("ko", "en")) -> ParsedDocument:
     video_id = _extract_video_id(url_or_id)
-    transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=list(language_priority))
-    text = "\n".join(part["text"] for part in transcript)
+    transcript_lines = _get_transcript(video_id, language_priority)
+    text = "\n".join(line for line in transcript_lines if line)
     title = _fetch_youtube_title(video_id)
     source_ref = f"https://www.youtube.com/watch?v={video_id}"
 
